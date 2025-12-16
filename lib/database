@@ -1,0 +1,334 @@
+-- ============================================
+-- HIRE BRIDGE - SUPABASE DATABASE SCHEMA
+-- ============================================
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================
+-- 1. USER TABLE (Base table for all users)
+-- ============================================
+CREATE TABLE users (
+    userID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    firstName VARCHAR(100),
+    lastName VARCHAR(100),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    gender VARCHAR(20),
+    dateOfBirth DATE,
+    phone VARCHAR(20),
+    country VARCHAR(100),
+    profileImage TEXT,
+    accountType VARCHAR(50) CHECK (accountType IN ('Job Seeker', 'Employer')),
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW()
+);
+
+-- Index for faster email lookups
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_accountType ON users(accountType);
+
+-- ============================================
+-- 2. JOB SEEKER PROFILE TABLE
+-- ============================================
+CREATE TABLE job_seeker_profiles (
+    seekerID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    userID UUID NOT NULL REFERENCES users(userID) ON DELETE CASCADE,
+    bio TEXT,
+    educationLevel VARCHAR(100),
+    skillsList TEXT[], -- Array of skills
+    experienceYears INTEGER,
+    desiredJobType VARCHAR(50),
+    resumeURL TEXT,
+    portfolioURL TEXT,
+    availabilityStatus VARCHAR(50) CHECK (availabilityStatus IN ('Available', 'Employed', 'Not Looking')),
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW(),
+    UNIQUE(userID)
+);
+
+-- Index for faster userID lookups
+CREATE INDEX idx_jobseeker_userID ON job_seeker_profiles(userID);
+
+-- ============================================
+-- 3. EMPLOYER TABLE
+-- ============================================
+CREATE TABLE employers (
+    employerID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    userID UUID NOT NULL REFERENCES users(userID) ON DELETE CASCADE,
+    companyName VARCHAR(255) NOT NULL,
+    companyLogo TEXT,
+    companyEmail VARCHAR(255),
+    companyPhone VARCHAR(20),
+    companyAddress TEXT,
+    companyWebsite TEXT,
+    companyDescription TEXT,
+    companyVerificationStatus VARCHAR(50) CHECK (companyVerificationStatus IN ('Verified', 'Pending', 'Rejected')) DEFAULT 'Pending',
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW(),
+    UNIQUE(userID)
+);
+
+-- Index for faster userID lookups
+CREATE INDEX idx_employer_userID ON employers(userID);
+CREATE INDEX idx_employer_verificationStatus ON employers(companyVerificationStatus);
+
+-- ============================================
+-- 4. JOB POST TABLE
+-- ============================================
+CREATE TABLE job_posts (
+    jobID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    employerID UUID NOT NULL REFERENCES employers(employerID) ON DELETE CASCADE,
+    jobTitle VARCHAR(255) NOT NULL,
+    jobCategory VARCHAR(100),
+    jobType VARCHAR(50) CHECK (jobType IN ('Full-time', 'Part-time', 'Remote', 'Freelance')),
+    jobDescription TEXT,
+    requiredSkills TEXT[], -- Array of required skills
+    experienceRequired INTEGER,
+    location VARCHAR(255),
+    workMode VARCHAR(50) CHECK (workMode IN ('On-site', 'Remote')),
+    postedDate TIMESTAMP DEFAULT NOW(),
+    lastDateToApply DATE,
+    status VARCHAR(20) CHECK (status IN ('Active', 'Closed')) DEFAULT 'Active',
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for faster searches
+CREATE INDEX idx_jobpost_employerID ON job_posts(employerID);
+CREATE INDEX idx_jobpost_status ON job_posts(status);
+CREATE INDEX idx_jobpost_jobType ON job_posts(jobType);
+CREATE INDEX idx_jobpost_location ON job_posts(location);
+
+-- ============================================
+-- 5. APPLICATION TABLE
+-- ============================================
+CREATE TABLE applications (
+    applicationID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    jobID UUID NOT NULL REFERENCES job_posts(jobID) ON DELETE CASCADE,
+    seekerID UUID NOT NULL REFERENCES job_seeker_profiles(seekerID) ON DELETE CASCADE,
+    appliedDate TIMESTAMP DEFAULT NOW(),
+    applicationStatus VARCHAR(50) CHECK (applicationStatus IN ('Applied', 'Shortlisted', 'Interview', 'Hired', 'Rejected')) DEFAULT 'Applied',
+    remarksByEmployer TEXT,
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW(),
+    UNIQUE(jobID, seekerID) -- Prevent duplicate applications
+);
+
+-- Indexes for faster queries
+CREATE INDEX idx_application_jobID ON applications(jobID);
+CREATE INDEX idx_application_seekerID ON applications(seekerID);
+CREATE INDEX idx_application_status ON applications(applicationStatus);
+
+-- ============================================
+-- 6. AI INTERVIEW TABLE
+-- ============================================
+CREATE TABLE ai_interviews (
+    interviewID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    applicationID UUID REFERENCES applications(applicationID) ON DELETE CASCADE,
+    seekerID UUID NOT NULL REFERENCES job_seeker_profiles(seekerID) ON DELETE CASCADE,
+    interviewDate DATE,
+    interviewTime TIME,
+    interviewMode VARCHAR(50) CHECK (interviewMode IN ('Online', 'Office')),
+    meetingLink TEXT,
+    interviewerName VARCHAR(255),
+    interviewStatus VARCHAR(50) CHECK (interviewStatus IN ('Scheduled', 'Completed')) DEFAULT 'Scheduled',
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW()
+);
+
+-- Index for faster lookups
+CREATE INDEX idx_aiinterview_applicationID ON ai_interviews(applicationID);
+CREATE INDEX idx_aiinterview_seekerID ON ai_interviews(seekerID);
+
+-- ============================================
+-- 7. HIRING RECORD TABLE (New in updated diagram)
+-- ============================================
+CREATE TABLE hiring_records (
+    hireID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    applicationID UUID NOT NULL REFERENCES applications(applicationID) ON DELETE CASCADE,
+    hireDate TIMESTAMP DEFAULT NOW(),
+    joiningDate DATE,
+    contractDuration VARCHAR(100),
+    salary DECIMAL(10, 2),
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW(),
+    UNIQUE(applicationID) -- One hiring record per application
+);
+
+-- Index for faster lookups
+CREATE INDEX idx_hiringrecord_applicationID ON hiring_records(applicationID);
+
+-- ============================================
+-- 8. TASK TABLE
+-- ============================================
+CREATE TABLE tasks (
+    taskID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    hireID UUID NOT NULL REFERENCES hiring_records(hireID) ON DELETE CASCADE,
+    taskTitle VARCHAR(255) NOT NULL,
+    taskDescription TEXT,
+    assignedDate TIMESTAMP DEFAULT NOW(),
+    deadlineDate DATE,
+    priority VARCHAR(20) CHECK (priority IN ('High', 'Medium', 'Low')),
+    taskStatus VARCHAR(50) CHECK (taskStatus IN ('Pending', 'In Progress', 'Completed')) DEFAULT 'Pending',
+    taskCategory VARCHAR(100),
+    createdAt TIMESTAMP DEFAULT NOW(),
+    updatedAt TIMESTAMP DEFAULT NOW()
+);
+
+-- Index for faster lookups
+CREATE INDEX idx_task_hireID ON tasks(hireID);
+CREATE INDEX idx_task_status ON tasks(taskStatus);
+
+-- ============================================
+-- 9. TASK FEEDBACK TABLE (New in updated diagram)
+-- ============================================
+CREATE TABLE task_feedback (
+    feedbackID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    taskID UUID NOT NULL REFERENCES tasks(taskID) ON DELETE CASCADE,
+    employerID UUID NOT NULL REFERENCES employers(employerID) ON DELETE CASCADE,
+    employeeID UUID NOT NULL REFERENCES job_seeker_profiles(seekerID) ON DELETE CASCADE,
+    feedbackText TEXT,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    submittedDate TIMESTAMP DEFAULT NOW(),
+    improvementNotes TEXT,
+    createdAt TIMESTAMP DEFAULT NOW(),
+    UNIQUE(taskID) -- One feedback per task
+);
+
+-- Index for faster lookups
+CREATE INDEX idx_taskfeedback_taskID ON task_feedback(taskID);
+CREATE INDEX idx_taskfeedback_employerID ON task_feedback(employerID);
+CREATE INDEX idx_taskfeedback_employeeID ON task_feedback(employeeID);
+
+-- ============================================
+-- 10. NOTIFICATION TABLE
+-- ============================================
+CREATE TABLE notifications (
+    notificationID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    userID UUID NOT NULL REFERENCES users(userID) ON DELETE CASCADE,
+    employerID UUID REFERENCES employers(employerID) ON DELETE CASCADE,
+    title VARCHAR(255),
+    message TEXT NOT NULL,
+    notificationType VARCHAR(50) CHECK (notificationType IN ('Task', 'Job', 'System', 'Application')),
+    createdAt TIMESTAMP DEFAULT NOW(),
+    isRead BOOLEAN DEFAULT FALSE
+);
+
+-- Indexes for faster queries
+CREATE INDEX idx_notification_userID ON notifications(userID);
+CREATE INDEX idx_notification_isRead ON notifications(isRead);
+CREATE INDEX idx_notification_type ON notifications(notificationType);
+
+-- ============================================
+-- 11. CHAT/MESSAGING TABLE
+-- ============================================
+CREATE TABLE messages (
+    messageID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    senderID UUID NOT NULL REFERENCES users(userID) ON DELETE CASCADE,
+    receiverID UUID NOT NULL REFERENCES users(userID) ON DELETE CASCADE,
+    messageText TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT NOW(),
+    isSeen BOOLEAN DEFAULT FALSE
+);
+
+-- Indexes for faster queries
+CREATE INDEX idx_message_senderID ON messages(senderID);
+CREATE INDEX idx_message_receiverID ON messages(receiverID);
+CREATE INDEX idx_message_timestamp ON messages(timestamp);
+
+-- ============================================
+-- 12. SAVED JOBS TABLE (New in updated diagram)
+-- ============================================
+CREATE TABLE saved_jobs (
+    savedID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    seekerID UUID NOT NULL REFERENCES job_seeker_profiles(seekerID) ON DELETE CASCADE,
+    jobID UUID NOT NULL REFERENCES job_posts(jobID) ON DELETE CASCADE,
+    savedAt TIMESTAMP DEFAULT NOW(),
+    UNIQUE(seekerID, jobID) -- Prevent duplicate saves
+);
+
+-- Indexes for faster queries
+CREATE INDEX idx_savedjobs_seekerID ON saved_jobs(seekerID);
+CREATE INDEX idx_savedjobs_jobID ON saved_jobs(jobID);
+
+-- ============================================
+-- TRIGGERS FOR UPDATED_AT TIMESTAMP
+-- ============================================
+
+-- Function to update updatedAt timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updatedAt = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply trigger to all tables with updatedAt
+CREATE TRIGGER update_users_updatedAt BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_jobseeker_updatedAt BEFORE UPDATE ON job_seeker_profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_employer_updatedAt BEFORE UPDATE ON employers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_jobpost_updatedAt BEFORE UPDATE ON job_posts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_application_updatedAt BEFORE UPDATE ON applications FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_aiinterview_updatedAt BEFORE UPDATE ON ai_interviews FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_hiringrecord_updatedAt BEFORE UPDATE ON hiring_records FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_task_updatedAt BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================
+
+-- Enable RLS on all tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_seeker_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE employers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_interviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hiring_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saved_jobs ENABLE ROW LEVEL SECURITY;
+
+-- Example RLS Policy for users (users can only see and update their own data)
+CREATE POLICY "Users can view own data" ON users FOR SELECT USING (auth.uid() = userID);
+CREATE POLICY "Users can update own data" ON users FOR UPDATE USING (auth.uid() = userID);
+
+-- Job seekers can view their own profile
+CREATE POLICY "Job seekers can view own profile" ON job_seeker_profiles FOR SELECT USING (auth.uid() = userID);
+CREATE POLICY "Job seekers can update own profile" ON job_seeker_profiles FOR UPDATE USING (auth.uid() = userID);
+
+-- Employers can view their own profile
+CREATE POLICY "Employers can view own profile" ON employers FOR SELECT USING (auth.uid() = userID);
+CREATE POLICY "Employers can update own profile" ON employers FOR UPDATE USING (auth.uid() = userID);
+
+-- Public can view active job posts
+CREATE POLICY "Anyone can view active jobs" ON job_posts FOR SELECT USING (status = 'Active');
+CREATE POLICY "Employers can manage their jobs" ON job_posts FOR ALL USING (auth.uid() IN (SELECT userID FROM employers WHERE employerID = job_posts.employerID));
+
+-- Job seekers can view their own applications
+CREATE POLICY "Job seekers can view own applications" ON applications FOR SELECT USING (auth.uid() IN (SELECT userID FROM job_seeker_profiles WHERE seekerID = applications.seekerID));
+
+-- Employers can view applications for their jobs
+CREATE POLICY "Employers can view job applications" ON applications FOR SELECT USING (auth.uid() IN (SELECT e.userID FROM employers e JOIN job_posts jp ON e.employerID = jp.employerID WHERE jp.jobID = applications.jobID));
+
+-- Users can view their own notifications
+CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid() = userID);
+
+-- Users can view messages where they are sender or receiver
+CREATE POLICY "Users can view own messages" ON messages FOR SELECT USING (auth.uid() = senderID OR auth.uid() = receiverID);
+
+-- ============================================
+-- SAMPLE DATA INSERTION (Optional for testing)
+-- ============================================
+
+-- Insert sample user (Job Seeker)
+-- INSERT INTO users (firstName, lastName, email, password, accountType, phone, country) 
+-- VALUES ('John', 'Doe', 'john@example.com', 'hashed_password', 'Job Seeker', '+1234567890', 'USA');
+
+-- Insert sample user (Employer)
+-- INSERT INTO users (firstName, lastName, email, password, accountType, phone, country) 
+-- VALUES ('Jane', 'Smith', 'jane@company.com', 'hashed_password', 'Employer', '+0987654321', 'UK');
