@@ -1,7 +1,5 @@
-
 import 'package:flutter/material.dart';
-import 'package:hirebridge/screens/SplashScreen.dart';
-
+import 'package:hirebridge/Frontend/LoginPages/splash_screen.dart';
 
 class HireBridgeApp extends StatelessWidget {
   const HireBridgeApp({Key? key}) : super(key: key);
@@ -14,6 +12,7 @@ class HireBridgeApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: 'Inter',
         primaryColor: const Color(0xFF0F1633),
+        scaffoldBackgroundColor: Colors.white,
       ),
       home: const SplashScreen(),
     );
