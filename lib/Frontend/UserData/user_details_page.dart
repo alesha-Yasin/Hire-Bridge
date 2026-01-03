@@ -4,6 +4,10 @@ import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/UserData/reusable_data_widgets.dart';
 import 'package:hirebridge/Frontend/JobseekerData/Jobseeker_data_page.dart';
+import 'package:hirebridge/models/User.dart' as model;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
+
 
 class UserDetailsPage extends StatefulWidget {
   final String userType;
@@ -20,6 +24,7 @@ class UserDetailsPage extends StatefulWidget {
 class _UserDetailsPageState extends State<UserDetailsPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isLoading = false;
 
   // Controllers
   final TextEditingController _firstNameController = TextEditingController();
@@ -83,6 +88,11 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_isLoading)
+                  const LinearProgressIndicator(
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.blue),
+                  ),
                 const SizedBox(height: 80),
 
                 // Title "Enter Your Details:"
@@ -331,34 +341,86 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     );
   }
 
-  void _submitForm() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Details Saved!'),
-        backgroundColor: AppColors.greenSuccess,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-    
-    // Navigate based on user type
-    if (widget.userType == 'job_seeker') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const JobseekerDataPage(),
-        ),
+  Future<void> _submitForm() async {
+    final supabaseUser = Supabase.instance.client.auth.currentUser;
+    if (supabaseUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in!')),
       );
-    } else if (widget.userType == 'company') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const CompanyDataPage(),
-        ),
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      DateTime? dob;
+      if (_dobController.text.isNotEmpty) {
+        dob = DateFormat('dd/MM/yyyy').parse(_dobController.text);
+      }
+
+      final user = model.User(
+        userId: supabaseUser.id,
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        email: _emailController.text.isNotEmpty ? _emailController.text : (supabaseUser.email ?? ''),
+        password: _passwordController.text, // Note: Schema has password, but auth handles it safely
+        gender: _selectedGender,
+        dateOfBirth: dob,
+        phone: _phoneController.text,
+        city: _selectedCity,
+        country: _selectedCountry,
+        accountType: widget.userType == 'job_seeker' ? 'Job Seeker' : 'Employer',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
-    } else {
-      // Fallback
-      Navigator.popUntil(context, (route) => route.isFirst);
+
+      await model.User.createUser(user);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Details Saved!'),
+            backgroundColor: AppColors.greenSuccess,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+
+        // Navigate based on user type
+        if (widget.userType == 'job_seeker') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const JobseekerDataPage(),
+            ),
+          );
+        } else if (widget.userType == 'company') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CompanyDataPage(),
+            ),
+          );
+        } else {
+          // Fallback
+          Navigator.popUntil(context, (route) => route.isFirst);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }

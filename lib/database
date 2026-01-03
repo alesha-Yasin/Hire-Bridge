@@ -17,6 +17,7 @@ CREATE TABLE users (
     gender VARCHAR(20),
     dateOfBirth DATE,
     phone VARCHAR(20),
+    city VARCHAR(100),
     country VARCHAR(100),
     profileImage TEXT,
     accountType VARCHAR(50) CHECK (accountType IN ('Job Seeker', 'Employer')),
@@ -38,10 +39,11 @@ CREATE TABLE job_seeker_profiles (
     educationLevel VARCHAR(100),
     skillsList TEXT[], -- Array of skills
     experienceYears INTEGER,
+    desiredSalary VARCHAR(100),
     desiredJobType VARCHAR(50),
     resumeURL TEXT,
     portfolioURL TEXT,
-    availabilityStatus VARCHAR(50) CHECK (availabilityStatus IN ('Available', 'Employed', 'Not Looking')),
+    availabilityStatus VARCHAR(50) CHECK (availabilityStatus IN ('Available', 'Not Available', 'Open to Opportunities')),
     createdAt TIMESTAMP DEFAULT NOW(),
     updatedAt TIMESTAMP DEFAULT NOW(),
     UNIQUE(userID)

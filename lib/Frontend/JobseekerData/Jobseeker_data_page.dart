@@ -3,6 +3,10 @@ import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/UserData/reusable_data_widgets.dart';
 import 'package:hirebridge/Frontend/JobseekerData/reusable_Jobseeker_widgets.dart';
+import 'package:hirebridge/models/JobSeeker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+
 
 class JobseekerDataPage extends StatefulWidget {
   const JobseekerDataPage({super.key});
@@ -18,7 +22,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
 
   // Controllers
   final TextEditingController _educationController = TextEditingController();
-  final TextEditingController _skillsController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _experienceController = TextEditingController();
   final TextEditingController _salaryController = TextEditingController();
@@ -27,12 +30,13 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
 
   String? _desiredJobType;
   String? _availabilityStatus;
+  List<String> _skillsList = [];
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _pageController.dispose();
     _educationController.dispose();
-    _skillsController.dispose();
     _bioController.dispose();
     _experienceController.dispose();
     _salaryController.dispose();
@@ -66,6 +70,11 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_isLoading)
+                  const LinearProgressIndicator(
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.blue),
+                  ),
                 const SizedBox(height: 80),
 
                 // Title "Create Profile"
@@ -179,10 +188,11 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
               label: 'Education Level',
               controller: _educationController,
             ),
-            JobseekerFormField(
+            DynamicItemField(
               label: 'Skills List',
-              controller: _skillsController,
-              suffixIcon: Icons.add_circle_outline,
+              items: _skillsList,
+              onChanged: (newList) => setState(() => _skillsList = newList),
+              hintText: 'Add a skill...',
             ),
             SearchableJobseekerDropdown(
               label: 'DesiredJob Type',
@@ -276,16 +286,63 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
     );
   }
 
-  void _submitProfile() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Profile Created Successfully!'),
-        backgroundColor: AppColors.greenSuccess,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-    // Navigate back to home/main screen
-    Navigator.popUntil(context, (route) => route.isFirst);
+  Future<void> _submitProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in!')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final profile = JobSeekerProfile(
+        seekerId: const Uuid().v4(),
+        userId: user.id,
+        bio: _bioController.text,
+        educationLevel: _educationController.text,
+        skillsList: _skillsList,
+        experienceYears: int.tryParse(_experienceController.text),
+        desiredSalary: _salaryController.text,
+        desiredJobType: _desiredJobType,
+        resumeUrl: _resumeController.text,
+        portfolioUrl: _portfolioController.text,
+        availabilityStatus: _availabilityStatus,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await JobSeekerProfile.createProfile(profile);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile Created Successfully!'),
+            backgroundColor: AppColors.greenSuccess,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+        // Navigate back to home/main screen
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

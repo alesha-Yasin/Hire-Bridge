@@ -3,6 +3,10 @@ import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/UserData/reusable_data_widgets.dart';
 import 'package:hirebridge/Frontend/CompanyData/reusable_company_widgets.dart';
+import 'package:hirebridge/models/Employer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+
 
 class CompanyDataPage extends StatefulWidget {
   const CompanyDataPage({super.key});
@@ -25,6 +29,7 @@ class _CompanyDataPageState extends State<CompanyDataPage> {
   final TextEditingController _descriptionController = TextEditingController();
 
   String? _verificationStatus = 'Pending';
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -63,6 +68,11 @@ class _CompanyDataPageState extends State<CompanyDataPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_isLoading)
+                  const LinearProgressIndicator(
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.blue),
+                  ),
                 const SizedBox(height: 80),
 
                 // Title "Create Profile"
@@ -252,16 +262,61 @@ class _CompanyDataPageState extends State<CompanyDataPage> {
     );
   }
 
-  void _submitProfile() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Profile Created Successfully!'),
-        backgroundColor: AppColors.greenSuccess,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-    // Navigate back to home/main screen
-    Navigator.popUntil(context, (route) => route.isFirst);
+  Future<void> _submitProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in!')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final employer = Employer(
+        employerId: const Uuid().v4(),
+        userId: user.id,
+        companyName: _nameController.text,
+        companyEmail: _emailController.text,
+        companyPhone: _phoneController.text,
+        companyAddress: _addressController.text,
+        companyWebsite: _websiteController.text,
+        companyDescription: _descriptionController.text,
+        companyVerificationStatus: _verificationStatus ?? 'Pending',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await Employer.createEmployer(employer);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile Created Successfully!'),
+            backgroundColor: AppColors.greenSuccess,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+        // Navigate back to home/main screen
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

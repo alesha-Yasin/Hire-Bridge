@@ -7,6 +7,7 @@ class JobSeekerProfile {
   final String? educationLevel;
   final List<String>? skillsList;
   final int? experienceYears;
+  final String? desiredSalary;
   final String? desiredJobType;
   final String? resumeUrl;
   final String? portfolioUrl;
@@ -21,6 +22,7 @@ class JobSeekerProfile {
     this.educationLevel,
     this.skillsList,
     this.experienceYears,
+    this.desiredSalary,
     this.desiredJobType,
     this.resumeUrl,
     this.portfolioUrl,
@@ -37,6 +39,7 @@ class JobSeekerProfile {
       educationLevel: json['educationLevel']?.toString(),
       skillsList: json['skillsList'] != null ? List<String>.from(json['skillsList']) : [],
       experienceYears: json['experienceYears'] is int ? json['experienceYears'] : int.tryParse(json['experienceYears']?.toString() ?? ''),
+      desiredSalary: json['desiredSalary']?.toString(),
       desiredJobType: json['desiredJobType']?.toString(),
       resumeUrl: json['resumeURL']?.toString() ?? json['resumeUrl']?.toString(),
       portfolioUrl: json['portfolioURL']?.toString() ?? json['portfolioUrl']?.toString(),
@@ -54,6 +57,7 @@ class JobSeekerProfile {
       'educationLevel': educationLevel,
       'skillsList': skillsList,
       'experienceYears': experienceYears,
+      'desiredSalary': desiredSalary,
       'desiredJobType': desiredJobType,
       'resumeURL': resumeUrl,
       'portfolioURL': portfolioUrl,

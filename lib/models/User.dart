@@ -9,6 +9,7 @@ class User {
   final String? gender;
   final DateTime? dateOfBirth;
   final String? phone;
+  final String? city;
   final String? country;
   final String? profileImage;
   final String? accountType;
@@ -24,6 +25,7 @@ class User {
     this.gender,
     this.dateOfBirth,
     this.phone,
+    this.city,
     this.country,
     this.profileImage,
     this.accountType,
@@ -41,6 +43,7 @@ class User {
       gender: json['gender']?.toString(),
       dateOfBirth: json['dateOfBirth'] != null ? DateTime.tryParse(json['dateOfBirth']) : null,
       phone: json['phone']?.toString(),
+      city: json['city']?.toString(),
       country: json['country']?.toString(),
       profileImage: json['profileImage']?.toString(),
       accountType: json['accountType']?.toString(),
@@ -59,6 +62,7 @@ class User {
       'gender': gender,
       'dateOfBirth': dateOfBirth?.toIso8601String(),
       'phone': phone,
+      'city': city,
       'country': country,
       'profileImage': profileImage,
       'accountType': accountType,

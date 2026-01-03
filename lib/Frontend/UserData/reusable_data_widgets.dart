@@ -707,3 +707,107 @@ class _SearchableFormDropdownState extends State<SearchableFormDropdown> {
   }
 }
 
+
+/// Dynamic Item Field for adding multiple items (like skills)
+class DynamicItemField extends StatefulWidget {
+  final String label;
+  final List<String> items;
+  final ValueChanged<List<String>> onChanged;
+  final String? hintText;
+
+  const DynamicItemField({
+    super.key,
+    required this.label,
+    required this.items,
+    required this.onChanged,
+    this.hintText,
+  });
+
+  @override
+  State<DynamicItemField> createState() => _DynamicItemFieldState();
+}
+
+class _DynamicItemFieldState extends State<DynamicItemField> {
+  final TextEditingController _controller = TextEditingController();
+
+  void _addItem() {
+    final text = _controller.text.trim();
+    if (text.isNotEmpty && !widget.items.contains(text)) {
+      final newItems = List<String>.from(widget.items)..add(text);
+      widget.onChanged(newItems);
+      _controller.clear();
+    }
+  }
+
+  void _removeItem(String item) {
+    final newItems = List<String>.from(widget.items)..remove(item);
+    widget.onChanged(newItems);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.label,
+            style: AppTextStyles.verySmallHeading.copyWith(
+              color: AppColors.blue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.cream.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: AppColors.blue, width: 2),
+            ),
+            child: TextField(
+              controller: _controller,
+              style: const TextStyle(color: AppColors.blue),
+              decoration: InputDecoration(
+                hintText: widget.hintText ?? 'Enter ${widget.label}',
+                hintStyle: TextStyle(color: AppColors.blue.withValues(alpha: 0.5)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: InputBorder.none,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.add_circle_outline, color: AppColors.blue),
+                  onPressed: _addItem,
+                ),
+              ),
+              onSubmitted: (_) => _addItem(),
+            ),
+          ),
+          if (widget.items.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: widget.items.map((item) => Chip(
+                label: Text(
+                  item,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+                backgroundColor: AppColors.blue,
+                deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white),
+                onDeleted: () => _removeItem(item),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              )).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
