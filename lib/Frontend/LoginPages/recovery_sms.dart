@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/LoginPages/reusable_widgets.dart';
 import 'package:hirebridge/Frontend/LoginPages/otp_verification.dart';
+import 'package:hirebridge/auth/auth_service.dart';
+import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 class RecoverySmsPage extends StatefulWidget {
   const RecoverySmsPage({Key? key}) : super(key: key);
 
@@ -12,6 +14,46 @@ class RecoverySmsPage extends StatefulWidget {
 class _RecoverySmsPageState extends State<RecoverySmsPage> {
   final TextEditingController phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _authService = AuthService();
+  bool _isLoading = false;
+
+  void _handleSmsRecovery() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      try {
+        await _authService.sendSMSOTP(phoneController.text.trim());
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Recovery code sent to your phone!'),
+              backgroundColor: AppColors.greenSuccess,
+            ),
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OtpVerificationPage(
+                verificationType: 'SMS',
+                email: phoneController.text.trim(),
+                isForRecovery: false, // Phone uses OtpType.sms
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -76,21 +118,12 @@ class _RecoverySmsPageState extends State<RecoverySmsPage> {
               const SizedBox(height: 40),
               
               // Send Link Recovery Button
-              CustomButton(
-                text: 'Send Link Recovery',
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const OtpVerificationPage(
-                          verificationType: 'SMS',
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.blue))
+                  : CustomButton(
+                      text: 'Send Link Recovery',
+                      onPressed: _handleSmsRecovery,
+                    ),
               const SizedBox(height: 30),
             ],
           ),

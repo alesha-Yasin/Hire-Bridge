@@ -78,16 +78,6 @@ class AppTextStyles {
     color: AppColors.cream,
   );
 
-
-
-
-
-
-
-
-
-
-
   // Subheading  Title 
   static const TextStyle subheading = TextStyle(
     fontFamily: 'Lalezar',

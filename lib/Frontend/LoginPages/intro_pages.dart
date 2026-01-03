@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/LoginPages/reusable_widgets.dart';
-import 'package:hirebridge/Frontend/LoginPages/login_page.dart';
+import 'package:hirebridge/auth/auth_gate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 class IntroPages extends StatefulWidget {
   const IntroPages({Key? key}) : super(key: key);
 
@@ -38,17 +40,23 @@ class _IntroPagesState extends State<IntroPages> {
     super.dispose();
   }
 
-  void _nextPage() {
+  void _nextPage() async {
     if (_currentPage < _onboardingData.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
+      // Mark as seen
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('hasSeenIntro', true);
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AuthGate()),
+        );
+      }
     }
   }
 

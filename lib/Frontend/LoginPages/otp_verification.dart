@@ -3,24 +3,85 @@ import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/LoginPages/reusable_widgets.dart';
 import 'package:hirebridge/Frontend/LoginPages/create_new_password.dart';
+import 'package:hirebridge/auth/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hirebridge/Frontend/LoginPages/login_page.dart';
+
 class OtpVerificationPage extends StatefulWidget {
-  final String verificationType; // 'Email' or 'SMS'
+  final String email;
+  final bool isForRecovery;
+  
+  final dynamic verificationType;
 
   const OtpVerificationPage({
-    Key? key,
+    super.key,
     required this.verificationType,
-  }) : super(key: key);
+    required this.email,
+    this.isForRecovery = false,
+  });
 
   @override
   State<OtpVerificationPage> createState() => _OtpVerificationPageState();
 }
 
 class _OtpVerificationPageState extends State<OtpVerificationPage> {
-  final List<String> otpDigits = ['', '', '', ''];
+  final List<String> otpDigits = List.generate(8, (_) => '');
   int currentIndex = 0;
+  final _authService = AuthService();
+  bool _isLoading = false;
+
+  void _handleVerifyOTP() async {
+    if (isOtpComplete()) {
+      setState(() => _isLoading = true);
+      try {
+        OtpType otpType;
+        if (widget.verificationType == 'SMS') {
+          otpType = OtpType.sms;
+        } else {
+          otpType = widget.isForRecovery ? OtpType.recovery : OtpType.email;
+        }
+
+        await _authService.verifyOTP(
+          token: getOtpCode(),
+          email: widget.verificationType == 'Email' ? widget.email : null,
+          phone: widget.verificationType == 'SMS' ? widget.email : null,
+          type: otpType,
+        );
+        if (mounted) {
+          if (widget.isForRecovery) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CreateNewPasswordPage(),
+              ),
+            );
+          } else {
+            // TODO: Navigate to your home page after verification
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const LoginPage(),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
 
   void _onNumberTap(String number) {
-    if (currentIndex < 4) {
+    if (currentIndex < 8) {
       setState(() {
         otpDigits[currentIndex] = number;
         currentIndex++;
@@ -154,7 +215,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       Text(
                         widget.verificationType == 'SMS'
                             ? 'We have send it on your phone number'
-                            : 'We have send it on your email xyz@gmail.com',
+                            : 'We have send it on your email ${widget.email}',
                         style: AppTextStyles.hintText.copyWith(
                           color: AppColors.cream,
                         ),
@@ -164,20 +225,21 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       // OTP Input Boxes - cream/parchment color
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(4, (index) {
+                        children: List.generate(8, (index) {
                           return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8),
-                            width: 55,
-                            height: 55,
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            width: 38,
+                            height: 45,
                             decoration: BoxDecoration(
                               color: AppColors.cream,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Center(
                               child: Text(
                                 otpDigits[index],
                                 style: AppTextStyles.mainTitle.copyWith(
                                   color: AppColors.blue,
+                                  fontSize: 22,
                                 ),
                               ),
                             ),
@@ -204,29 +266,14 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                       ),
                       
                       // Continue Button - cream/parchment color
-                      CustomButton(
-                        text: 'Continue',
-                        backgroundColor: AppColors.cream,
-                        textColor: AppColors.blue,
-                        onPressed: () {
-                          if (isOtpComplete()) {
-                            // Navigate to Create New Password page
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CreateNewPasswordPage(),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter complete OTP'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                      ),
+                      _isLoading
+                          ? const Center(child: CircularProgressIndicator(color: AppColors.cream))
+                          : CustomButton(
+                              text: 'Continue',
+                              backgroundColor: AppColors.cream,
+                              textColor: AppColors.blue,
+                              onPressed: _handleVerifyOTP,
+                            ),
                       const SizedBox(height: 20),
                     ],
                   ),

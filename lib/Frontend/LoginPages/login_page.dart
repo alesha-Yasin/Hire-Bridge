@@ -4,8 +4,11 @@ import 'package:hirebridge/Frontend/LoginPages/reusable_widgets.dart';
 import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/forget_password.dart';
 import 'package:hirebridge/Frontend/LoginPages/signup_page.dart';
+import 'package:hirebridge/auth/auth_service.dart';
+import 'package:hirebridge/models/auth_models.dart';
+import 'package:hirebridge/Frontend/UserData/user_type_selection.dart';
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -15,7 +18,42 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _authService = AuthService();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  void _handleLogin() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      try {
+        await _authService.signIn(
+          LoginRequest(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          ),
+        );
+        
+        if (mounted) {
+          // Explicit navigation to election page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const UserTypeSelection()),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -159,20 +197,12 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 30),
               
               // Log In Button
-              CustomButton(
-                text: 'Log In',
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Handle login
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Login successful!'),
-                        backgroundColor: AppColors.greenSuccess,
-                      ),
-                    );
-                  }
-                },
-              ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.cream))
+                  : CustomButton(
+                      text: 'Log In',
+                      onPressed: _handleLogin,
+                    ),
               const SizedBox(height: 30),
               
               // Don't have an account? Sign Up

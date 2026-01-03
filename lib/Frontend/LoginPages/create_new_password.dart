@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/LoginPages/reusable_widgets.dart';
+import 'package:hirebridge/auth/auth_service.dart';
 
 class CreateNewPasswordPage extends StatefulWidget {
   const CreateNewPasswordPage({Key? key}) : super(key: key);
@@ -14,8 +15,40 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
   final TextEditingController newPasswordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _authService = AuthService();
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+
+  void _handleUpdatePassword() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      try {
+        await _authService.updatePassword(newPasswordController.text.trim());
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Password changed successfully!'),
+              backgroundColor: AppColors.greenSuccess,
+            ),
+          );
+          // Navigate back to login
+          Navigator.popUntil(context, (route) => route.isFirst);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -194,23 +227,14 @@ class _CreateNewPasswordPageState extends State<CreateNewPasswordPage> {
                       const SizedBox(height: 24),
                       
                       // Continue Button - using CustomButton
-                      CustomButton(
-                        text: 'Continue',
-                        backgroundColor: AppColors.blue,
-                        textColor: AppColors.cream,
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Password changed successfully!'),
-                                backgroundColor: AppColors.greenSuccess,
-                              ),
-                            );
-                            // Navigate back to login or home
-                            Navigator.popUntil(context, (route) => route.isFirst);
-                          }
-                        },
-                      ),
+                      _isLoading
+                          ? const Center(child: CircularProgressIndicator(color: AppColors.blue))
+                          : CustomButton(
+                              text: 'Continue',
+                              backgroundColor: AppColors.blue,
+                              textColor: AppColors.cream,
+                              onPressed: _handleUpdatePassword,
+                            ),
                     ],
                   ),
                 ),

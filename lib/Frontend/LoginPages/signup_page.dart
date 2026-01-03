@@ -3,6 +3,8 @@ import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/LoginPages/reusable_widgets.dart';
 import 'package:hirebridge/Frontend/LoginPages/login_page.dart';
+import 'package:hirebridge/auth/auth_service.dart';
+import 'package:hirebridge/models/auth_models.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -17,8 +19,49 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _authService = AuthService();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+
+  void _handleSignUp() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      try {
+        await _authService.signUp(
+          SignUpRequest(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+            phone: phoneController.text.trim(),
+          ),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sign up successful! Please check your email for verification.'),
+              backgroundColor: AppColors.greenSuccess,
+            ),
+          );
+          // TODO: Navigate to your home page after signup
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -253,20 +296,12 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 30),
               
               // Continue Button
-              CustomButton(
-                text: 'Continue',
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Handle sign up
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Sign up successful!'),
-                        backgroundColor: AppColors.greenSuccess,
-                      ),
-                    );
-                  }
-                },
-              ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.cream))
+                  : CustomButton(
+                      text: 'Continue',
+                      onPressed: _handleSignUp,
+                    ),
               const SizedBox(height: 20),
               
               // Already Have an Account? LOG IN
