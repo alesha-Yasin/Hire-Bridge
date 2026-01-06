@@ -9,44 +9,50 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 1. USER TABLE (Base table for all users)
 -- ============================================
 CREATE TABLE users (
-    userID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    firstName VARCHAR(100),
-    lastName VARCHAR(100),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
+    "userID" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "firstName" VARCHAR(100),
+    "lastName" VARCHAR(100),
     gender VARCHAR(20),
-    dateOfBirth DATE,
+    "dateOfBirth" DATE,
     phone VARCHAR(20),
     city VARCHAR(100),
     country VARCHAR(100),
-    profileImage TEXT,
-    accountType VARCHAR(50) CHECK (accountType IN ('Job Seeker', 'Employer')),
-    createdAt TIMESTAMP DEFAULT NOW(),
-    updatedAt TIMESTAMP DEFAULT NOW()
+    "profileImage" TEXT,
+    "address" TEXT,
+    "accountType" VARCHAR(50) CHECK ("accountType" IN ('Job Seeker', 'Employer')),
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW()
 );
 
--- Index for faster email lookups
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_accountType ON users(accountType);
+-- Index for faster accountType lookups
+CREATE INDEX idx_users_accountType ON users("accountType");
 
 -- ============================================
 -- 2. JOB SEEKER PROFILE TABLE
 -- ============================================
 CREATE TABLE job_seeker_profiles (
-    seekerID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    userID UUID NOT NULL REFERENCES users(userID) ON DELETE CASCADE,
+    "seekerID" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "userID" UUID NOT NULL REFERENCES users("userID") ON DELETE CASCADE,
     bio TEXT,
-    educationLevel VARCHAR(100),
-    skillsList TEXT[], -- Array of skills
-    experienceYears INTEGER,
-    desiredSalary VARCHAR(100),
-    desiredJobType VARCHAR(50),
-    resumeURL TEXT,
-    portfolioURL TEXT,
-    availabilityStatus VARCHAR(50) CHECK (availabilityStatus IN ('Available', 'Not Available', 'Open to Opportunities')),
-    createdAt TIMESTAMP DEFAULT NOW(),
-    updatedAt TIMESTAMP DEFAULT NOW(),
-    UNIQUE(userID)
+    "educationLevel" TEXT[], -- Array of education levels
+    "skillsList" TEXT[], -- Array of skills
+    "experienceYears" INTEGER,
+    "headline" VARCHAR(255),
+    "about" TEXT,
+    "currentPosition" VARCHAR(255),
+    "desiredSalary" VARCHAR(100),
+    "desiredJobType" VARCHAR(50),
+    "resumeURL" TEXT,
+    "profileURL" TEXT,
+    "address" TEXT,
+    "internshipsCount" INTEGER DEFAULT 0,
+    "projectsCount" INTEGER DEFAULT 0,
+    "projects" JSONB DEFAULT '[]',
+    "detailedExperience" JSONB DEFAULT '[]',
+    "availabilityStatus" VARCHAR(50) CHECK ("availabilityStatus" IN ('Available', 'Not Available', 'Open to Opportunities')),
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    UNIQUE("userID")
 );
 
 -- Index for faster userID lookups
@@ -56,19 +62,19 @@ CREATE INDEX idx_jobseeker_userID ON job_seeker_profiles(userID);
 -- 3. EMPLOYER TABLE
 -- ============================================
 CREATE TABLE employers (
-    employerID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    userID UUID NOT NULL REFERENCES users(userID) ON DELETE CASCADE,
-    companyName VARCHAR(255) NOT NULL,
-    companyLogo TEXT,
-    companyEmail VARCHAR(255),
-    companyPhone VARCHAR(20),
-    companyAddress TEXT,
-    companyWebsite TEXT,
-    companyDescription TEXT,
-    companyVerificationStatus VARCHAR(50) CHECK (companyVerificationStatus IN ('Verified', 'Pending', 'Rejected')) DEFAULT 'Pending',
-    createdAt TIMESTAMP DEFAULT NOW(),
-    updatedAt TIMESTAMP DEFAULT NOW(),
-    UNIQUE(userID)
+    "employerID" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "userID" UUID NOT NULL REFERENCES users("userID") ON DELETE CASCADE,
+    "companyName" VARCHAR(255) NOT NULL,
+    "companyLogo" TEXT,
+    "companyEmail" VARCHAR(255),
+    "companyPhone" VARCHAR(20),
+    "companyAddress" TEXT,
+    "companyWebsite" TEXT,
+    "companyDescription" TEXT,
+    "companyVerificationStatus" VARCHAR(50) CHECK ("companyVerificationStatus" IN ('Verified', 'Pending', 'Rejected')) DEFAULT 'Pending',
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    UNIQUE("userID")
 );
 
 -- Index for faster userID lookups

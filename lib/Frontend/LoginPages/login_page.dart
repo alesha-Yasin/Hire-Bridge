@@ -7,6 +7,8 @@ import 'package:hirebridge/Frontend/LoginPages/signup_page.dart';
 import 'package:hirebridge/auth/auth_service.dart';
 import 'package:hirebridge/models/auth_models.dart';
 import 'package:hirebridge/Frontend/UserData/user_type_selection.dart';
+import 'package:hirebridge/services/navigation_service.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -34,11 +36,8 @@ class _LoginPageState extends State<LoginPage> {
         );
         
         if (mounted) {
-          // Explicit navigation to election page
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const UserTypeSelection()),
-          );
+          // Intelligent navigation based on user state
+          await NavigationService.navigateAfterLogin(context);
         }
       } catch (e) {
         if (mounted) {

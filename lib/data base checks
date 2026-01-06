@@ -1,0 +1,199 @@
+-- ============================================
+-- DIAGNOSTIC QUERIES FOR HIREBRIDGE APP FLOW
+-- Run these in your Supabase SQL Editor
+-- ============================================
+
+-- 1. Check if all required tables exist
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name IN ('users', 'job_seeker_profiles', 'employers');
+
+-- ============================================
+
+-- 2. Check users table structure
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'users'
+ORDER BY ordinal_position;
+
+-- ============================================
+
+-- 3. Check job_seeker_profiles table structure
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'job_seeker_profiles'
+ORDER BY ordinal_position;
+
+-- ============================================
+
+-- 4. Check employers table structure
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'employers'
+ORDER BY ordinal_position;
+
+-- ============================================
+
+-- 5. Check if there are any users in the database (shows first 10 for preview)
+-- NOTE: This LIMIT 10 is only for viewing - unlimited users can sign up!
+SELECT 
+    "userID", 
+    "firstName", 
+    "lastName", 
+    "accountType",
+    "createdAt"
+FROM users
+LIMIT 10;
+
+-- ============================================
+
+-- 6. Check users who have NO profile data yet (need to complete profile)
+SELECT 
+    u."userID",
+    u."firstName",
+    u."lastName",
+    u."accountType",
+    CASE 
+        WHEN u."accountType" = 'Job Seeker' AND jsp."seekerID" IS NULL THEN 'Missing JobSeeker Profile'
+        WHEN u."accountType" = 'Employer' AND e."employerID" IS NULL THEN 'Missing Employer Profile'
+        ELSE 'Profile Complete'
+    END as profile_status
+FROM users u
+LEFT JOIN job_seeker_profiles jsp ON u."userID" = jsp."userID"
+LEFT JOIN employers e ON u."userID" = e."userID";
+
+-- ============================================
+
+-- 7. Check auth users who haven't entered basic user data yet
+-- (These users signed up but didn't complete user details form)
+SELECT 
+    au.id as auth_user_id,
+    au.email,
+    au.created_at as signup_date,
+    CASE 
+        WHEN u."userID" IS NULL THEN 'No User Data - Needs User Type Selection'
+        ELSE 'Has User Data'
+    END as status
+FROM auth.users au
+LEFT JOIN public.users u ON au.id = u."userID";
+
+-- ============================================
+
+-- 8. Full user journey status check
+SELECT 
+    au.id as auth_user_id,
+    au.email,
+    u."firstName",
+    u."lastName",
+    u."accountType",
+    CASE 
+        WHEN u."userID" IS NULL THEN 'STEP 1: Needs User Type Selection + User Details'
+        WHEN u."accountType" = 'Job Seeker' AND jsp."seekerID" IS NULL THEN 'STEP 2: Needs JobSeeker Profile Data'
+        WHEN u."accountType" = 'Employer' AND e."employerID" IS NULL THEN 'STEP 2: Needs Employer Profile Data'
+        ELSE 'COMPLETE: Ready for Profile Page'
+    END as journey_status
+FROM auth.users au
+LEFT JOIN public.users u ON au.id = u."userID"
+LEFT JOIN public.job_seeker_profiles jsp ON au.id = jsp."userID"
+LEFT JOIN public.employers e ON au.id = e."userID"
+ORDER BY au.created_at DESC;
+
+-- ============================================
+
+-- 9. Count users at each stage of the journey
+SELECT 
+    journey_status,
+    COUNT(*) as user_count
+FROM (
+    SELECT 
+        CASE 
+            WHEN u."userID" IS NULL THEN 'Needs User Type Selection'
+            WHEN u."accountType" = 'Job Seeker' AND jsp."seekerID" IS NULL THEN 'Needs JobSeeker Profile'
+            WHEN u."accountType" = 'Employer' AND e."employerID" IS NULL THEN 'Needs Employer Profile'
+            ELSE 'Profile Complete'
+        END as journey_status
+    FROM auth.users au
+    LEFT JOIN public.users u ON au.id = u."userID"
+    LEFT JOIN public.job_seeker_profiles jsp ON au.id = jsp."userID"
+    LEFT JOIN public.employers e ON au.id = e."userID"
+) subquery
+GROUP BY journey_status;
+
+-- ============================================
+
+-- 10. Check RLS policies that might block the app from reading data
+SELECT 
+    schemaname,
+    tablename,
+    policyname,
+    permissive,
+    roles,
+    cmd,
+    qual
+FROM pg_policies
+WHERE schemaname = 'public'
+AND tablename IN ('users', 'job_seeker_profiles', 'employers');
+
+-- ============================================
+-- RLS POLICIES (FIXED - No type casting needed)
+-- ============================================
+
+-- 11. Drop existing policies first (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can insert own data" ON users;
+DROP POLICY IF EXISTS "Users can view own data" ON users;
+DROP POLICY IF EXISTS "Users can update own data" ON users;
+DROP POLICY IF EXISTS "Job seekers can insert own profile" ON job_seeker_profiles;
+DROP POLICY IF EXISTS "Job seekers can view own profile" ON job_seeker_profiles;
+DROP POLICY IF EXISTS "Job seekers can update own profile" ON job_seeker_profiles;
+DROP POLICY IF EXISTS "Employers can insert own profile" ON employers;
+DROP POLICY IF EXISTS "Employers can view own profile" ON employers;
+DROP POLICY IF EXISTS "Employers can update own profile" ON employers;
+
+-- 12. Create USERS table policies
+CREATE POLICY "Users can insert own data" 
+ON users FOR INSERT 
+WITH CHECK (auth.uid() = "userID");
+
+CREATE POLICY "Users can view own data" 
+ON users FOR SELECT 
+USING (auth.uid() = "userID");
+
+CREATE POLICY "Users can update own data" 
+ON users FOR UPDATE 
+USING (auth.uid() = "userID");
+
+-- 13. Create JOB_SEEKER_PROFILES table policies
+CREATE POLICY "Job seekers can insert own profile" 
+ON job_seeker_profiles FOR INSERT 
+WITH CHECK (auth.uid() = "userID");
+
+CREATE POLICY "Job seekers can view own profile" 
+ON job_seeker_profiles FOR SELECT 
+USING (auth.uid() = "userID");
+
+CREATE POLICY "Job seekers can update own profile" 
+ON job_seeker_profiles FOR UPDATE 
+USING (auth.uid() = "userID");
+
+-- 14. Create EMPLOYERS table policies
+CREATE POLICY "Employers can insert own profile" 
+ON employers FOR INSERT 
+WITH CHECK (auth.uid() = "userID");
+
+CREATE POLICY "Employers can view own profile" 
+ON employers FOR SELECT 
+USING (auth.uid() = "userID");
+
+CREATE POLICY "Employers can update own profile" 
+ON employers FOR UPDATE 
+USING (auth.uid() = "userID");
+
+-- ============================================
+-- Verify all policies were created correctly
+-- ============================================
+SELECT tablename, policyname, cmd 
+FROM pg_policies 
+WHERE schemaname = 'public' 
+AND tablename IN ('users', 'job_seeker_profiles', 'employers')
+ORDER BY tablename, policyname;

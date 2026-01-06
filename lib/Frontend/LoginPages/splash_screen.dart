@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/reusable_widgets.dart';
-import 'package:hirebridge/Frontend/LoginPages/intro_pages.dart';
-import 'package:hirebridge/auth/auth_gate.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hirebridge/services/navigation_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,29 +18,20 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToNextScreen() async {
+    // Show splash for 2 seconds
     await Future.delayed(const Duration(seconds: 2));
     
     if (!mounted) return;
     
-    // Check if user has seen intro pages before
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenIntro = prefs.getBool('hasSeenIntro') ?? false;
+    // Use NavigationService to determine where to go
+    final destination = await NavigationService.getDestinationScreen();
     
     if (!mounted) return;
     
-    if (hasSeenIntro) {
-      // User has seen intro, go directly to AuthGate
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AuthGate()),
-      );
-    } else {
-      // First time user, show intro pages
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const IntroPages()),
-      );
-    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => destination),
+    );
   }
 
   @override

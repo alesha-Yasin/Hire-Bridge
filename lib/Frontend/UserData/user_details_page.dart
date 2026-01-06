@@ -29,11 +29,11 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   // Controllers
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _createdDateController = TextEditingController();
+  final TextEditingController _accountTypeController = TextEditingController();
 
   String? _selectedGender;
   String? _selectedCity;
@@ -45,6 +45,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     final now = DateTime.now();
     _createdDateController.text =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    _accountTypeController.text = widget.userType == 'job_seeker' ? 'Job Seeker' : 'Employer';
   }
 
   @override
@@ -52,11 +53,11 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     _pageController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
     _phoneController.dispose();
     _dobController.dispose();
+    _addressController.dispose();
     _createdDateController.dispose();
+    _accountTypeController.dispose();
     super.dispose();
   }
 
@@ -233,14 +234,13 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
               controller: _lastNameController,
             ),
             FormTextField(
-              label: 'Email',
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
+              label: 'Address',
+              controller: _addressController,
             ),
             FormTextField(
-              label: 'Password',
-              controller: _passwordController,
-              isPassword: true,
+              label: 'Account Type',
+              controller: _accountTypeController,
+              readOnly: true,
             ),
             FormTextField(
               label: 'Phone',
@@ -249,19 +249,6 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
               prefixIcon: Icons.phone,
               keyboardType: TextInputType.phone,
             ),
-            
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPage2() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: FormContainer(
-        child: Column(
-          children: [
             FormTextField(
               label: 'Date Of Birth',
               controller: _dobController,
@@ -281,6 +268,18 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
                 }
               },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPage2() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: FormContainer(
+        child: Column(
+          children: [
             SearchableFormDropdown(
               label: 'Gender',
               value: _selectedGender,
@@ -362,13 +361,12 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
         userId: supabaseUser.id,
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
-        email: _emailController.text.isNotEmpty ? _emailController.text : (supabaseUser.email ?? ''),
-        password: _passwordController.text, // Note: Schema has password, but auth handles it safely
         gender: _selectedGender,
         dateOfBirth: dob,
         phone: _phoneController.text,
         city: _selectedCity,
         country: _selectedCountry,
+        address: _addressController.text,
         accountType: widget.userType == 'job_seeker' ? 'Job Seeker' : 'Employer',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
 import 'package:hirebridge/Frontend/UserData/reusable_data_widgets.dart';
-import 'package:hirebridge/Frontend/CompanyData/reusable_company_widgets.dart';
+import 'package:hirebridge/Frontend/CompanyData/reusable_company_widgets.dart' hide ProfilePhotoUpload;
 import 'package:hirebridge/models/Employer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:hirebridge/services/supabase_storage_service.dart';
+import 'package:hirebridge/Frontend/JobseekerData/reusable_Jobseeker_widgets.dart' show ProfilePhotoUpload;
 
 
 class CompanyDataPage extends StatefulWidget {
@@ -30,6 +33,18 @@ class _CompanyDataPageState extends State<CompanyDataPage> {
 
   String? _verificationStatus = 'Pending';
   bool _isLoading = false;
+  String? _logoPath;
+
+  // Image Picking
+  Future<void> _pickLogo() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _logoPath = image.path;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -242,19 +257,8 @@ class _CompanyDataPageState extends State<CompanyDataPage> {
           children: [
             const SizedBox(height: 40),
             ProfilePhotoUpload(
-              onTap: () {
-                // Handle logo upload
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Logo upload coming soon!'),
-                    backgroundColor: AppColors.blue,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              },
+              imagePath: _logoPath,
+              onTap: _pickLogo,
             ),
           ],
         ),
@@ -274,6 +278,17 @@ class _CompanyDataPageState extends State<CompanyDataPage> {
     setState(() => _isLoading = true);
 
     try {
+      String? logoUrl;
+
+      // 1. Upload Logo if exists
+      if (_logoPath != null) {
+        logoUrl = await SupabaseStorageService.uploadFile(
+          bucket: 'profiles', // Using profiles bucket for logos too, or create a 'logos' one
+          filePath: _logoPath!,
+          fileName: 'logo_${user.id}',
+        );
+      }
+
       final employer = Employer(
         employerId: const Uuid().v4(),
         userId: user.id,
@@ -283,6 +298,7 @@ class _CompanyDataPageState extends State<CompanyDataPage> {
         companyAddress: _addressController.text,
         companyWebsite: _websiteController.text,
         companyDescription: _descriptionController.text,
+        companyLogo: logoUrl,
         companyVerificationStatus: _verificationStatus ?? 'Pending',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),

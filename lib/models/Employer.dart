@@ -41,8 +41,8 @@ class Employer {
       companyAddress: json['companyAddress']?.toString(),
       companyWebsite: json['companyWebsite']?.toString(),
       companyVerificationStatus: json['companyVerificationStatus']?.toString() ?? 'Pending',
-      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
-      updatedAt: json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
+      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
     );
   }
 
@@ -58,9 +58,38 @@ class Employer {
       'companyAddress': companyAddress,
       'companyWebsite': companyWebsite,
       'companyVerificationStatus': companyVerificationStatus,
-      'createdAt': createdAt?.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
+      // createdAt and updatedAt are typically handled by DB triggers
     };
+  }
+
+  Employer copyWith({
+    String? employerId,
+    String? userId,
+    String? companyName,
+    String? companyLogo,
+    String? companyEmail,
+    String? companyPhone,
+    String? companyDescription,
+    String? companyAddress,
+    String? companyWebsite,
+    String? companyVerificationStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Employer(
+      employerId: employerId ?? this.employerId,
+      userId: userId ?? this.userId,
+      companyName: companyName ?? this.companyName,
+      companyLogo: companyLogo ?? this.companyLogo,
+      companyEmail: companyEmail ?? this.companyEmail,
+      companyPhone: companyPhone ?? this.companyPhone,
+      companyDescription: companyDescription ?? this.companyDescription,
+      companyAddress: companyAddress ?? this.companyAddress,
+      companyWebsite: companyWebsite ?? this.companyWebsite,
+      companyVerificationStatus: companyVerificationStatus ?? this.companyVerificationStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 
   static final _supabase = Supabase.instance.client;

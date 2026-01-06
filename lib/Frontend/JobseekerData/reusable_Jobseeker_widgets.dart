@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hirebridge/Frontend/LoginPages/AppColors.dart';
 import 'package:hirebridge/Frontend/LoginPages/app_text_styles.dart';
@@ -61,29 +62,32 @@ class JobseekerFormField extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.cream.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 12 : 25),
-              border: Border.all(color: AppColors.blue, width: 1.5),
-            ),
-            child: TextField(
-              controller: controller,
-              readOnly: readOnly,
-              maxLines: maxLines,
-              onTap: onTap,
-              style: const TextStyle(color: AppColors.blue),
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: TextStyle(color: AppColors.blue.withValues(alpha: 0.5)),
-                suffixIcon: suffixIcon != null
-                    ? Icon(suffixIcon, color: AppColors.blue, size: 20)
-                    : null,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: maxLines > 1 ? 12 : 10,
+          GestureDetector(
+            onTap: readOnly ? onTap : null,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.cream.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(maxLines > 1 ? 12 : 25),
+                border: Border.all(color: AppColors.blue, width: 1.5),
+              ),
+              child: TextField(
+                controller: controller,
+                readOnly: readOnly,
+                maxLines: maxLines,
+                onTap: readOnly ? null : onTap,
+                style: const TextStyle(color: AppColors.blue),
+                decoration: InputDecoration(
+                  hintText: hintText,
+                  hintStyle: TextStyle(color: AppColors.blue.withValues(alpha: 0.5)),
+                  suffixIcon: suffixIcon != null
+                      ? Icon(suffixIcon, color: AppColors.blue, size: 20)
+                      : null,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: maxLines > 1 ? 12 : 10,
+                  ),
+                  border: InputBorder.none,
                 ),
-                border: InputBorder.none,
               ),
             ),
           ),
@@ -297,10 +301,12 @@ class ScatteredJobseekerImages extends StatelessWidget {
 /// Profile Photo Upload Widget
 class ProfilePhotoUpload extends StatelessWidget {
   final VoidCallback onTap;
+  final String? imagePath;
 
   const ProfilePhotoUpload({
     super.key,
     required this.onTap,
+    this.imagePath,
   });
 
   @override
@@ -335,6 +341,12 @@ class ProfilePhotoUpload extends StatelessWidget {
               color: AppColors.background.withValues(alpha: 0.6),
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 4),
+              image: imagePath != null
+                  ? DecorationImage(
+                      image: FileImage(File(imagePath!)),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
               boxShadow: [
                 BoxShadow(
                   color: AppColors.blue.withValues(alpha: 0.2),
@@ -346,11 +358,12 @@ class ProfilePhotoUpload extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(
-                  Icons.person_outline,
-                  size: 80,
-                  color: AppColors.blue.withValues(alpha: 0.3),
-                ),
+                if (imagePath == null)
+                  Icon(
+                    Icons.person_outline,
+                    size: 80,
+                    color: AppColors.blue.withValues(alpha: 0.3),
+                  ),
                 Positioned(
                   bottom: 10,
                   right: 10,
