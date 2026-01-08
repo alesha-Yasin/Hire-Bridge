@@ -12,20 +12,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:hirebridge/services/supabase_storage_service.dart';
-
-
 class JobseekerDataPage extends StatefulWidget {
   const JobseekerDataPage({super.key});
-
   @override
   State<JobseekerDataPage> createState() => _JobseekerDataPageState();
 }
-
 class _JobseekerDataPageState extends State<JobseekerDataPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final int _totalPages = 3;
-
   // Controllers
   final TextEditingController _headlineController = TextEditingController();
   final TextEditingController _aboutController = TextEditingController();
@@ -33,18 +28,31 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
   final TextEditingController _salaryController = TextEditingController();
   final TextEditingController _resumeController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-
-  String? _currentPosition;
+  List<String> _selectedPositions = [];
+  final List<String> _marketPositions = [
+    'Software Engineer',
+    'Mobile App Developer',
+    'UI/UX Designer',
+    'Full Stack Developer',
+    'Frontend Developer',
+    'Backend Developer',
+    'Data Scientist',
+    'DevOps Engineer',
+    'Product Manager',
+    'QA Engineer',
+    'Cybersecurity Analyst',
+    'Cloud Architect',
+    'AI/ML Engineer',
+    'Game Developer',
+  ];
   String? _desiredJobType;
   String? _availabilityStatus;
-  List<String> _educationLevels = [];
   List<String> _skillsList = [];
+  bool _showPositionSelection = false;
   bool _isLoading = false;
-  
   // File upload states
   String? _profilePhotoPath;
   String? _resumePath;
-
   // Image Picking
   Future<void> _pickProfilePhoto() async {
     final picker = ImagePicker();
@@ -55,14 +63,12 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       });
     }
   }
-
   // File Picking
   Future<void> _pickResume() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx'],
     );
-
     if (result != null && result.files.single.path != null) {
       setState(() {
         _resumePath = result.files.single.path;
@@ -70,7 +76,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       });
     }
   }
-
   @override
   void dispose() {
     _pageController.dispose();
@@ -82,7 +87,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
     _addressController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,7 +94,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       body: Stack(
         children: [
           const ScatteredJobseekerImages(),
-
           // Top-left corner decoration
           const Positioned(
             top: 0,
@@ -102,7 +105,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
             right: 5,
             child: BottomRightCornerDecoration(),
           ),
-
           // Main content
           SafeArea(
             child: Column(
@@ -114,7 +116,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
                     valueColor: AlwaysStoppedAnimation<Color>(AppColors.blue),
                   ),
                 const SizedBox(height: 80),
-
                 // Title "Create Profile"
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -125,7 +126,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
 
                 // PageView for forms
@@ -143,7 +143,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
                     ],
                   ),
                 ),
-
                 // Bottom navigation
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -168,13 +167,11 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
                           size: 32,
                         ),
                       ),
-
                       // Page indicators
                       PageIndicatorDots(
                         totalPages: _totalPages,
                         currentPage: _currentPage,
                       ),
-
                       // NEXT button
                       GestureDetector(
                         onTap: () {
@@ -214,7 +211,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       ),
     );
   }
-
   // Page 1: Education Level, Skills List, Headline, About
   Widget _buildPage1() {
     return SingleChildScrollView(
@@ -222,12 +218,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       child: JobseekerFormContainer(
         child: Column(
           children: [
-            DynamicItemField(
-              label: 'Education Level',
-              items: _educationLevels,
-              onChanged: (newList) => setState(() => _educationLevels = newList),
-              hintText: 'Add an education level...',
-            ),
             DynamicItemField(
               label: 'Skills List',
               items: _skillsList,
@@ -253,7 +243,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       ),
     );
   }
-
   // Page 2: Experience Years, Current Position, Resume /cv, Availability Status
   Widget _buildPage2() {
     return SingleChildScrollView(
@@ -265,21 +254,7 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
               label: 'Experience Years',
               controller: _experienceController,
             ),
-            SearchableJobseekerDropdown(
-              label: 'Current position',
-              value: _currentPosition,
-              hintText: 'industry',
-              options: const [
-                'Software Engineering',
-                'Design',
-                'Marketing',
-                'Sales',
-                'Human Resources',
-                'Finance',
-                'Other',
-              ],
-              onSelected: (val) => setState(() => _currentPosition = val),
-            ),
+            _buildPositionSelection(),
             JobseekerFormField(
               label: 'Resume /cv',
               controller: _resumeController,
@@ -302,7 +277,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       ),
     );
   }
-
   // Page 3: Profile Photo Upload
   Widget _buildPage3() {
     return SingleChildScrollView(
@@ -321,7 +295,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       ),
     );
   }
-
   Future<void> _submitProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -330,9 +303,7 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
       );
       return;
     }
-
     setState(() => _isLoading = true);
-
     try {
       String? profileImageUrl;
       String? resumeUrl;
@@ -344,7 +315,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
           user.id,
         );
       }
-
       // 2. Upload Resume if exists
       if (_resumePath != null) {
         resumeUrl = await SupabaseStorageService.uploadResume(
@@ -352,26 +322,21 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
           user.id,
         );
       }
-
       final profile = JobSeekerProfile(
         seekerId: const Uuid().v4(),
         userId: user.id,
         bio: _aboutController.text,
-        educationLevel: _educationLevels,
         skillsList: _skillsList,
         experienceYears: int.tryParse(_experienceController.text),
         headline: _headlineController.text,
         about: _aboutController.text,
-        currentPosition: _currentPosition,
+        currentPositions: _selectedPositions,
         desiredSalary: _salaryController.text,
         desiredJobType: _desiredJobType,
         resumeUrl: resumeUrl ?? _resumeController.text,
         address: _addressController.text,
         availabilityStatus: _availabilityStatus,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
       );
-
       // Update the user's profile image URL in the users table as well if needed
       if (profileImageUrl != null) {
         final currentUser = await model.User.fetchUser(user.id);
@@ -394,7 +359,6 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
           await model.User.updateUser(updatedUser);
         }
       }
-
       await JobSeekerProfile.createProfile(profile);
 
       if (mounted) {
@@ -428,5 +392,117 @@ class _JobseekerDataPageState extends State<JobseekerDataPage> {
         setState(() => _isLoading = false);
       }
     }
+  }
+  Widget _buildPositionSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Current Position',
+              style: TextStyle(
+                color: AppColors.blue,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _showPositionSelection = !_showPositionSelection;
+                });
+              },
+              icon: Icon(
+                _showPositionSelection ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                color: AppColors.blue,
+              ),
+            ),
+          ],
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.black26, width: 1.0)),
+          ),
+          child: _selectedPositions.isEmpty
+              ? const Text('Select your positions', style: TextStyle(color: Colors.black38, fontSize: 13))
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _selectedPositions.map((p) => Chip(
+                    label: Text(p, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                    backgroundColor: AppColors.blue,
+                    deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white),
+                    onDeleted: () {
+                      setState(() {
+                        _selectedPositions.remove(p);
+                      });
+                    },
+                    padding: EdgeInsets.zero,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  )).toList(),
+                ),
+        ),
+        if (_showPositionSelection) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.blue.withOpacity(0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            constraints: const BoxConstraints(maxHeight: 200),
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _marketPositions.map((pos) {
+                  final isSelected = _selectedPositions.contains(pos);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedPositions.remove(pos);
+                        } else {
+                          _selectedPositions.add(pos);
+                        }
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.blue : Colors.transparent,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: isSelected ? AppColors.blue : Colors.black12),
+                      ),
+                      child: Text(
+                        pos,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black87,
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+      ],
+    );
   }
 }

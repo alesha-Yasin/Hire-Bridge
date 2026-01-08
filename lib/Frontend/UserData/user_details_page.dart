@@ -45,7 +45,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
     final now = DateTime.now();
     _createdDateController.text =
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
-    _accountTypeController.text = widget.userType == 'job_seeker' ? 'Job Seeker' : 'Employer';
+    _accountTypeController.text = widget.userType == 'job_seeker' ? 'JobSeeker' : 'Employer';
   }
 
   @override
@@ -367,7 +367,7 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
         city: _selectedCity,
         country: _selectedCountry,
         address: _addressController.text,
-        accountType: widget.userType == 'job_seeker' ? 'Job Seeker' : 'Employer',
+        accountType: widget.userType == 'job_seeker' ? 'JobSeeker' : 'Employer',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

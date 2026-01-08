@@ -19,22 +19,25 @@ class EditProject {
 
   EditProject({
     required this.name,
-    this.languages = const [],
-    this.tools = const [],
+    List<String>? languages,
+    List<String>? tools,
     this.description = '',
     this.githubUrl = '',
-  });
+  })  : languages = languages != null ? List.from(languages) : [],
+        tools = tools != null ? List.from(tools) : [];
 }
 
 class EditEducation {
   String degree;
   String institution;
   String year;
+  String grade;
 
   EditEducation({
     required this.degree,
     required this.institution,
     required this.year,
+    this.grade = '',
   });
 }
 

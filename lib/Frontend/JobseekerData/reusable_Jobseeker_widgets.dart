@@ -262,15 +262,15 @@ class ScatteredJobseekerImages extends StatelessWidget {
               Column(
                 children: [
                   Image.asset(
-                    'assets/images/imageSB.png',
+                    'assets/images/image05B.png',
                     width: 90,
-                    opacity: const AlwaysStoppedAnimation(100),
+                    opacity: const AlwaysStoppedAnimation(1),
                   ),
                   const SizedBox(height: 8),
                   Image.asset(
                     'assets/images/imageS2G.png',
                     width: 90,
-                    opacity: const AlwaysStoppedAnimation(100),
+                    opacity: const AlwaysStoppedAnimation(1.0),
                   ),
                 ],
               ),
@@ -280,13 +280,13 @@ class ScatteredJobseekerImages extends StatelessWidget {
                   Image.asset(
                     'assets/images/imageSG.png',
                     width: 90,
-                    opacity: const AlwaysStoppedAnimation(100),
+                    opacity: const AlwaysStoppedAnimation(1.0),
                   ),
                   const SizedBox(height: 8),
                   Image.asset(
                     'assets/images/imageS2B.png',
                     width: 90,
-                    opacity: const AlwaysStoppedAnimation(100),
+                    opacity: const AlwaysStoppedAnimation(1.0),
                   ),
                 ],
               ),

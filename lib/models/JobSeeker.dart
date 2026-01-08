@@ -4,12 +4,11 @@ class JobSeekerProfile {
   final String seekerId;
   final String userId;
   final String? bio;
-  final List<dynamic>? educationLevel;
   final List<dynamic>? skillsList;
   final int? experienceYears;
   final String? headline;
   final String? about;
-  final String? currentPosition;
+  final List<String> currentPositions;
   final String? desiredSalary;
   final String? desiredJobType;
   final String? resumeUrl;
@@ -19,6 +18,7 @@ class JobSeekerProfile {
   final int? projectsCount;
   final List<dynamic>? projects;
   final List<dynamic>? detailedExperience;
+  final List<dynamic>? detailedEducation;
   final String? availabilityStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -27,12 +27,11 @@ class JobSeekerProfile {
     required this.seekerId,
     required this.userId,
     this.bio,
-    this.educationLevel,
     this.skillsList,
     this.experienceYears,
     this.headline,
     this.about,
-    this.currentPosition,
+    this.currentPositions = const [],
     this.desiredSalary,
     this.desiredJobType,
     this.resumeUrl,
@@ -42,6 +41,7 @@ class JobSeekerProfile {
     this.projectsCount,
     this.projects,
     this.detailedExperience,
+    this.detailedEducation,
     this.availabilityStatus,
     this.createdAt,
     this.updatedAt,
@@ -55,7 +55,9 @@ class JobSeekerProfile {
       experienceYears: json['experienceYears'] is int ? json['experienceYears'] : int.tryParse(json['experienceYears']?.toString() ?? ''),
       headline: json['headline']?.toString(),
       about: json['about']?.toString(),
-      currentPosition: json['currentPosition']?.toString(),
+      currentPositions: json['currentPositions'] != null 
+          ? List<String>.from(json['currentPositions'].map((x) => x.toString()))
+          : (json['currentPosition'] != null ? [json['currentPosition'].toString()] : []),
       desiredSalary: json['desiredSalary']?.toString(),
       desiredJobType: json['desiredJobType']?.toString(),
       resumeUrl: json['resumeURL']?.toString() ?? json['resumeUrl']?.toString(),
@@ -65,8 +67,8 @@ class JobSeekerProfile {
       projectsCount: json['projectsCount'] is int ? json['projectsCount'] : int.tryParse(json['projectsCount']?.toString() ?? '0'),
       projects: json['job_seeker_projects'] as List<dynamic>?,
       skillsList: json['job_seeker_skills'] as List<dynamic>?,
-      educationLevel: json['job_seeker_education'] as List<dynamic>?,
       detailedExperience: json['job_seeker_experience'] as List<dynamic>?,
+      detailedEducation: json['job_seeker_education'] as List<dynamic>?,
       availabilityStatus: json['availabilityStatus']?.toString(),
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
@@ -81,7 +83,7 @@ class JobSeekerProfile {
       'experienceYears': experienceYears,
       'headline': headline,
       'about': about,
-      'currentPosition': currentPosition,
+      'currentPositions': currentPositions,
       'desiredSalary': desiredSalary,
       'desiredJobType': desiredJobType,
       'resumeURL': resumeUrl,
@@ -90,8 +92,6 @@ class JobSeekerProfile {
       'internshipsCount': internshipsCount,
       'projectsCount': projectsCount,
       'availabilityStatus': availabilityStatus,
-      // educationLevel, skillsList, projects, and detailedExperience are handled by separate tables
-      // createdAt and updatedAt are typically handled by DB triggers
     };
   }
 
@@ -99,12 +99,11 @@ class JobSeekerProfile {
     String? seekerId,
     String? userId,
     String? bio,
-    List<dynamic>? educationLevel,
     List<dynamic>? skillsList,
     int? experienceYears,
     String? headline,
     String? about,
-    String? currentPosition,
+    List<String>? currentPositions,
     String? desiredSalary,
     String? desiredJobType,
     String? resumeUrl,
@@ -114,6 +113,7 @@ class JobSeekerProfile {
     int? projectsCount,
     List<dynamic>? projects,
     List<dynamic>? detailedExperience,
+    List<dynamic>? detailedEducation,
     String? availabilityStatus,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -122,12 +122,11 @@ class JobSeekerProfile {
       seekerId: seekerId ?? this.seekerId,
       userId: userId ?? this.userId,
       bio: bio ?? this.bio,
-      educationLevel: educationLevel ?? this.educationLevel,
       skillsList: skillsList ?? this.skillsList,
       experienceYears: experienceYears ?? this.experienceYears,
       headline: headline ?? this.headline,
       about: about ?? this.about,
-      currentPosition: currentPosition ?? this.currentPosition,
+      currentPositions: currentPositions ?? this.currentPositions,
       desiredSalary: desiredSalary ?? this.desiredSalary,
       desiredJobType: desiredJobType ?? this.desiredJobType,
       resumeUrl: resumeUrl ?? this.resumeUrl,
@@ -137,6 +136,7 @@ class JobSeekerProfile {
       projectsCount: projectsCount ?? this.projectsCount,
       projects: projects ?? this.projects,
       detailedExperience: detailedExperience ?? this.detailedExperience,
+      detailedEducation: detailedEducation ?? this.detailedEducation,
       availabilityStatus: availabilityStatus ?? this.availabilityStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -149,7 +149,7 @@ class JobSeekerProfile {
     try {
       final response = await _supabase
           .from('job_seeker_profiles')
-          .select('*, job_seeker_projects(*), job_seeker_skills(*), job_seeker_education(*), job_seeker_experience(*)')
+          .select('*, job_seeker_projects(*), job_seeker_skills(*), job_seeker_experience(*), job_seeker_education(*)')
           .eq('userID', userId)
           .maybeSingle();
       return response != null ? JobSeekerProfile.fromJson(response) : null;
@@ -176,17 +176,20 @@ class JobSeekerProfile {
           .update(profile.toJson())
           .eq('seekerID', profile.seekerId);
 
-      // 2. Sync Projects (Delete old, insert new)
+      // 2. Sync Projects
       if (profile.projects != null) {
         await _supabase.from('job_seeker_projects').delete().eq('seekerID', profile.seekerId);
         if (profile.projects!.isNotEmpty) {
-          final projectsToInsert = profile.projects!.map((p) => {
-            'seekerID': profile.seekerId,
-            'name': p['name'],
-            'description': p['description'],
-            'languages': p['languages'],
-            'tools': p['tools'],
-            'githubUrl': p['githubUrl'],
+          final projectsToInsert = profile.projects!.map((p) {
+            if (p is! Map) throw 'Project data must be a Map, got ${p.runtimeType}';
+            return {
+              'seekerID': profile.seekerId,
+              'name': p['name'],
+              'description': p['description'],
+              'languages': p['languages'],
+              'tools': p['tools'],
+              'githubUrl': p['githubUrl'],
+            };
           }).toList();
           await _supabase.from('job_seeker_projects').insert(projectsToInsert);
         }
@@ -196,47 +199,56 @@ class JobSeekerProfile {
       if (profile.skillsList != null) {
         await _supabase.from('job_seeker_skills').delete().eq('seekerID', profile.seekerId);
         if (profile.skillsList!.isNotEmpty) {
-          final skillsToInsert = profile.skillsList!.map((s) => {
-            'seekerID': profile.seekerId,
-            'name': s['name'],
-            'projectName': s['projectName'],
-            'workWith': s['workWith'],
+          final skillsToInsert = profile.skillsList!.map((s) {
+            if (s is! Map) throw 'Skill data must be a Map, got ${s.runtimeType}';
+            return {
+              'seekerID': profile.seekerId,
+              'name': s['name'],
+              'projectName': s['projectName'],
+              'workWith': s['workWith'],
+            };
           }).toList();
           await _supabase.from('job_seeker_skills').insert(skillsToInsert);
         }
       }
 
-      // 4. Sync Education
-      if (profile.educationLevel != null) {
+      // 4. Sync Experience
+      if (profile.detailedExperience != null) {
+        await _supabase.from('job_seeker_experience').delete().eq('seekerID', profile.seekerId);
+        if (profile.detailedExperience!.isNotEmpty) {
+          final experienceToInsert = profile.detailedExperience!.map((exp) {
+            if (exp is! Map) throw 'Experience data must be a Map, got ${exp.runtimeType}';
+            return {
+              'seekerID': profile.seekerId,
+              'company': exp['company'],
+              'role': exp['role'],
+              'period': exp['period'],
+              'description': exp['description'],
+            };
+          }).toList();
+          await _supabase.from('job_seeker_experience').insert(experienceToInsert);
+        }
+      // 5. Sync Education
+      if (profile.detailedEducation != null) {
         await _supabase.from('job_seeker_education').delete().eq('seekerID', profile.seekerId);
-        if (profile.educationLevel!.isNotEmpty) {
-          final educationToInsert = profile.educationLevel!.map((e) => {
-            'seekerID': profile.seekerId,
-            'degree': e['degree'],
-            'institution': e['institution'],
-            'year': e['year'],
+        if (profile.detailedEducation!.isNotEmpty) {
+          final educationToInsert = profile.detailedEducation!.map((edu) {
+            if (edu is! Map) throw 'Education data must be a Map, got ${edu.runtimeType}';
+            return {
+              'seekerID': profile.seekerId,
+              'degree': edu['degree'],
+              'school': edu['school'],
+              'year': edu['year'],
+              'grade': edu['grade'],
+            };
           }).toList();
           await _supabase.from('job_seeker_education').insert(educationToInsert);
         }
       }
-
-      // 5. Sync Experience
-      if (profile.detailedExperience != null) {
-        await _supabase.from('job_seeker_experience').delete().eq('seekerID', profile.seekerId);
-        if (profile.detailedExperience!.isNotEmpty) {
-          final experienceToInsert = profile.detailedExperience!.map((exp) => {
-            'seekerID': profile.seekerId,
-            'company': exp['company'],
-            'role': exp['role'],
-            'period': exp['period'],
-            'description': exp['description'],
-          }).toList();
-          await _supabase.from('job_seeker_experience').insert(experienceToInsert);
-        }
-      }
-    } catch (e) {
+    }} catch (e) {
       print('Error updating job seeker profile: $e');
       rethrow;
     }
   }
 }
+

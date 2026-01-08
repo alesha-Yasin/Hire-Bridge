@@ -21,7 +21,12 @@ class _EditEducationPageState extends State<EditEducationPage> {
 
   void _addEducation() {
     setState(() {
-      _education.add(EditEducation(degree: 'Degree', institution: 'University', year: '2024'));
+      _education.add(EditEducation(
+        degree: 'Degree / Qualification',
+        institution: 'School / University',
+        year: 'Graduation Year',
+        grade: '',
+      ));
     });
   }
 
@@ -41,7 +46,7 @@ class _EditEducationPageState extends State<EditEducationPage> {
       children: _education.isEmpty
           ? [
               EmptyStateHint(
-                message: 'No education history found.\nAdd your degrees to showcase your qualifications.',
+                message: 'No education details added yet.\nHighlight your academic background to stand out.',
                 onAdd: _addEducation,
               ),
             ]
@@ -54,14 +59,14 @@ class _EditEducationPageState extends State<EditEducationPage> {
                 child: Column(
                   children: [
                     EditInputField(
-                      label: 'Degree',
-                      initialValue: edu.degree,
-                      onChanged: (val) => edu.degree = val,
-                    ),
-                    EditInputField(
                       label: 'Institution',
                       initialValue: edu.institution,
                       onChanged: (val) => edu.institution = val,
+                    ),
+                    EditInputField(
+                      label: 'Degree',
+                      initialValue: edu.degree,
+                      onChanged: (val) => edu.degree = val,
                     ),
                     EditInputField(
                       label: 'Year',

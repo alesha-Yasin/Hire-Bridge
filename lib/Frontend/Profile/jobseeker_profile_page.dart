@@ -9,9 +9,9 @@ import 'package:hirebridge/Frontend/Profile/settings_page.dart';
 import 'package:hirebridge/Frontend/Profile/edits/edit_about_page.dart';
 import 'package:hirebridge/Frontend/Profile/edits/edit_skills_page.dart';
 import 'package:hirebridge/Frontend/Profile/edits/edit_projects_page.dart';
-import 'package:hirebridge/Frontend/Profile/edits/edit_education_page.dart';
 import 'package:hirebridge/Frontend/Profile/edits/edit_experience_page.dart';
 import 'package:hirebridge/models/jobseeker_edit_models.dart';
+import 'package:hirebridge/Frontend/Profile/edits/edit_education_page.dart';
 
 class JobSeekerProfilePage extends StatefulWidget {
   const JobSeekerProfilePage({super.key});
@@ -96,9 +96,6 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
             _buildAboutCard(),
             const SizedBox(height: 20),
 
-            // Education Section
-            _buildEducationCard(),
-            const SizedBox(height: 20),
 
             // Skills Section
             _buildSkillsCard(),
@@ -110,6 +107,10 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
 
             // Experience Section
             _buildExperienceCard(),
+            const SizedBox(height: 20),
+            
+            // Education Section
+            _buildEducationCard(),
             const SizedBox(height: 20),
 
             // Address Section
@@ -172,17 +173,38 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
             style: const TextStyle(
               color: Color(0xFF0F1633),
               fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 4),
+          const Text(
+            'Available',
+            style: TextStyle(
+              color: Colors.green,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (_profile?.currentPositions.isNotEmpty ?? false) ...[
+            const SizedBox(height: 4),
+            Text(
+              _profile!.currentPositions.join(' • '),
+              style: const TextStyle(
+                color: Color(0xFF0F1633),
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildStatItem('Experience', '${_profile?.experienceYears ?? 0}'),
-              _buildStatItem('Internship', '${_profile?.internshipsCount ?? 0}'),
-              _buildStatItem('Projects', '${_profile?.projectsCount ?? 0}'),
+              _buildStatItem('Experience', '${_profile?.experienceYears ?? 0}', unit: 'years'),
+              _buildStatItem('Tasks', '${_profile?.internshipsCount ?? 0}'),
+              _buildStatItem('Projects', '${_profile?.projects?.length ?? 0}'),
             ],
           ),
         ],
@@ -190,21 +212,30 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
+  Widget _buildStatItem(String label, String value, {String? unit}) {
     return Column(
       children: [
         Text(
           value,
           style: const TextStyle(
-            fontSize: 22,
+            fontSize: 24, // Slightly larger to match screenshot
             fontWeight: FontWeight.bold,
             color: Color(0xFF0F1633),
           ),
         ),
+        if (unit != null)
+          Text(
+            unit,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF0F1633),
+            ),
+          ),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.bold,
             color: Color(0xFF0F1633),
           ),
@@ -250,27 +281,6 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
     );
   }
 
-  Widget _buildEducationCard() {
-    final hasEducation = _profile?.educationLevel != null && _profile!.educationLevel!.isNotEmpty;
-    
-    return ProfileSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionTitle(
-            title: 'Education',
-            onEdit: () => _navigateToEducationEdit(context),
-            onAdd: () => _navigateToEducationEdit(context),
-          ),
-          const SizedBox(height: 12),
-          if (hasEducation)
-            ..._profile!.educationLevel!.map((edu) => _buildEducationItem(edu))
-          else
-            const Text('Add your education history...', style: TextStyle(color: Color(0xFF0F1633), fontSize: 13)),
-        ],
-      ),
-    );
-  }
 
   Widget _buildSkillsCard() {
     return ProfileSectionCard(
@@ -335,6 +345,27 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
       ),
     );
   }
+  Widget _buildEducationCard() {
+    final hasEdu = _profile?.detailedEducation != null && _profile!.detailedEducation!.isNotEmpty;
+
+    return ProfileSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: 'Education',
+            onEdit: () => _navigateToEducationEdit(context),
+            onAdd: () => _navigateToEducationEdit(context),
+          ),
+          const SizedBox(height: 12),
+          if (hasEdu)
+            ..._profile!.detailedEducation!.map((edu) => _buildEducationItem(edu))
+          else
+            const Text('Add your education details...', style: TextStyle(color: Color(0xFF0F1633), fontSize: 13)),
+        ],
+      ),
+    );
+  }
 
   Widget _buildAddressCard() {
     return ProfileSectionCard(
@@ -352,35 +383,6 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
     );
   }
 
-  Widget _buildEducationItem(dynamic edu) {
-    final title = edu is Map ? edu['degree'] ?? 'Degree' : edu.toString();
-    final subtitle = edu is Map ? '${edu['institution'] ?? 'Institution'} • ${edu['year'] ?? ''}' : '';
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(color: Color(0xFF0F1633), fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-              ),
-            ],
-          ),
-          if (subtitle.isNotEmpty)
-            Text(
-              subtitle,
-              style: const TextStyle(color: Color(0x990F1633), fontSize: 12),
-            ),
-          const Divider(color: Color(0xFF0F1633), thickness: 0.5),
-        ],
-      ),
-    );
-  }
 
   Widget _buildProjectItem(dynamic project) {
     final title = project is Map ? project['name'] ?? 'Project' : project.toString();
@@ -486,36 +488,82 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
     );
   }
 
+
+  Widget _buildEducationItem(dynamic edu) {
+    final school = edu is Map ? edu['school'] ?? 'Institution' : edu.toString();
+    final degree = edu is Map ? edu['degree'] ?? '' : '';
+    final year = edu is Map ? edu['year'] ?? '' : '';
+    final grade = edu is Map ? edu['grade'] ?? '' : '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(radius: 18, backgroundColor: Colors.grey[200], child: const Icon(Icons.school, size: 18, color: Color(0xFF0F1633))),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      school,
+                      style: const TextStyle(color: Color(0xFF0F1633), fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    if (degree.isNotEmpty)
+                      Text(
+                        degree,
+                        style: const TextStyle(color: Color(0xFF0F1633), fontWeight: FontWeight.w500, fontSize: 13),
+                      ),
+                  ],
+                ),
+              ),
+              if (year.isNotEmpty)
+                Text(
+                  year,
+                  style: const TextStyle(color: Color(0x990F1633), fontSize: 11),
+                ),
+            ],
+          ),
+          if (grade.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, left: 48),
+              child: Text(
+                'Grade: $grade',
+                style: const TextStyle(color: Color(0x990F1633), fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 8),
+          const Divider(color: Color(0xFF0F1633), thickness: 0.5),
+        ],
+      ),
+    );
+  }
+
   void _navigateToEducationEdit(BuildContext context) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditEducationPage(
-          initialEducation: _educationFromData(_profile?.educationLevel),
+          initialEducation: _educationFromData(_profile?.detailedEducation),
         ),
       ),
     );
     if (result != null && _profile != null) {
       setState(() {
         _profile = _profile!.copyWith(
-          educationLevel: (result as List<EditEducation>).map((e) => {
+          detailedEducation: (result as List<EditEducation>).map((e) => {
             'degree': e.degree,
-            'institution': e.institution,
+            'school': e.institution,
             'year': e.year,
+            'grade': e.grade,
           }).toList(),
         );
       });
       _saveProfile();
     }
-  }
-
-  List<EditEducation> _educationFromData(dynamic data) {
-    if (data == null || data is! List) return [];
-    return data.map((e) => EditEducation(
-      degree: e['degree']?.toString() ?? '',
-      institution: e['institution']?.toString() ?? '',
-      year: e['year']?.toString() ?? '',
-    )).toList();
   }
 
   void _navigateToSkillsEdit(BuildContext context) async {
@@ -547,6 +595,16 @@ class _JobSeekerProfilePageState extends State<JobSeekerProfilePage> {
       name: s['name']?.toString() ?? '',
       projectName: s['projectName']?.toString() ?? '',
       workWith: s['workWith']?.toString() ?? '',
+    )).toList();
+  }
+
+  List<EditEducation> _educationFromData(dynamic data) {
+    if (data == null || data is! List) return [];
+    return data.map((e) => EditEducation(
+      degree: e['degree']?.toString() ?? '',
+      institution: e['school']?.toString() ?? '',
+      year: e['year']?.toString() ?? '',
+      grade: e['grade']?.toString() ?? '',
     )).toList();
   }
 

@@ -23,12 +23,29 @@ class _EditIntroPageState extends State<EditIntroPage> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _headlineController;
-  late TextEditingController _educationController;
-  late TextEditingController _positionController;
   late TextEditingController _countryController;
   late TextEditingController _cityController;
 
+  late List<String> _selectedPositions;
+  final List<String> _marketPositions = [
+    'Software Engineer',
+    'Mobile App Developer',
+    'UI/UX Designer',
+    'Full Stack Developer',
+    'Frontend Developer',
+    'Backend Developer',
+    'Data Scientist',
+    'DevOps Engineer',
+    'Product Manager',
+    'QA Engineer',
+    'Cybersecurity Analyst',
+    'Cloud Architect',
+    'AI/ML Engineer',
+    'Game Developer',
+  ];
+
   bool _isLoading = false;
+  bool _showPositionSelection = false;
 
   @override
   void initState() {
@@ -36,8 +53,7 @@ class _EditIntroPageState extends State<EditIntroPage> {
     _firstNameController = TextEditingController(text: widget.user.firstName);
     _lastNameController = TextEditingController(text: widget.user.lastName);
     _headlineController = TextEditingController(text: widget.profile.headline);
-    _educationController = TextEditingController(text: widget.profile.educationLevel?.join(', ') ?? '');
-    _positionController = TextEditingController(text: widget.profile.currentPosition);
+    _selectedPositions = List<String>.from(widget.profile.currentPositions);
     _countryController = TextEditingController(text: widget.user.country);
     _cityController = TextEditingController(text: widget.user.city);
   }
@@ -47,8 +63,6 @@ class _EditIntroPageState extends State<EditIntroPage> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _headlineController.dispose();
-    _educationController.dispose();
-    _positionController.dispose();
     _countryController.dispose();
     _cityController.dispose();
     super.dispose();
@@ -80,12 +94,11 @@ class _EditIntroPageState extends State<EditIntroPage> {
         seekerId: widget.profile.seekerId,
         userId: widget.profile.userId,
         bio: widget.profile.bio,
-        educationLevel: _educationController.text.split(',').map((e) => e.trim()).toList(),
         skillsList: widget.profile.skillsList,
         experienceYears: widget.profile.experienceYears,
         headline: _headlineController.text,
         about: widget.profile.about,
-        currentPosition: _positionController.text,
+        currentPositions: _selectedPositions,
         desiredSalary: widget.profile.desiredSalary,
         desiredJobType: widget.profile.desiredJobType,
         resumeUrl: widget.profile.resumeUrl,
@@ -142,16 +155,18 @@ class _EditIntroPageState extends State<EditIntroPage> {
                     controller: _headlineController,
                     maxLines: 2,
                   ),
-                  ModernEditTextField(
-                    label: 'Education',
-                    controller: _educationController,
-                    suffixIcon: Icons.add_circle_outline,
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Current Position',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  ModernEditTextField(
-                    label: 'Current Position',
-                    controller: _positionController,
-                    suffixIcon: Icons.add_circle_outline,
-                  ),
+                  const SizedBox(height: 12),
+                  _buildPositionSelection(),
+                  const SizedBox(height: 24),
                   ModernEditTextField(
                     label: 'Country',
                     controller: _countryController,
@@ -220,6 +235,101 @@ class _EditIntroPageState extends State<EditIntroPage> {
           ],
         ),
       ),
+    );
+  }
+  Widget _buildPositionSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Colors.white, width: 1.5)),
+                ),
+                child: _selectedPositions.isEmpty
+                    ? const Text('Select your positions', style: TextStyle(color: Colors.white54, fontSize: 14))
+                    : Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _selectedPositions.map((p) => Chip(
+                          label: Text(p, style: const TextStyle(color: Color(0xFF0F1633), fontSize: 12)),
+                          backgroundColor: AppColors.cream,
+                          deleteIcon: const Icon(Icons.close, size: 14, color: Color(0xFF0F1633)),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedPositions.remove(p);
+                            });
+                          },
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        )).toList(),
+                      ),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _showPositionSelection = !_showPositionSelection;
+                });
+              },
+              icon: Icon(
+                _showPositionSelection ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        if (_showPositionSelection) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1F3C),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            constraints: const BoxConstraints(maxHeight: 200),
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _marketPositions.map((pos) {
+                  final isSelected = _selectedPositions.contains(pos);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedPositions.remove(pos);
+                        } else {
+                          _selectedPositions.add(pos);
+                        }
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.cream : Colors.white10,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Text(
+                        pos,
+                        style: TextStyle(
+                          color: isSelected ? const Color(0xFF0F1633) : Colors.white70,
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -52,7 +52,7 @@ class NavigationService {
       }
 
       // 4. Check if user has completed their profile based on account type
-      if (userData.accountType == 'Job Seeker') {
+      if (userData.accountType == 'JobSeeker') {
         final profile = await JobSeekerProfile.fetchByUserId(authUser.id);
         if (profile == null) {
           return UserJourneyState.needsProfileData;
@@ -135,7 +135,7 @@ class _ProfileDataRouter extends StatelessWidget {
         }
 
         final accountType = snapshot.data;
-        if (accountType == 'Job Seeker') {
+        if (accountType == 'JobSeeker') {
           return const JobseekerDataPage();
         } else if (accountType == 'Employer') {
           return const CompanyDataPage();
@@ -164,7 +164,7 @@ class _ProfileRouter extends StatelessWidget {
         }
 
         final accountType = snapshot.data;
-        if (accountType == 'Job Seeker') {
+        if (accountType == 'JobSeeker') {
           return const JobSeekerProfilePage();
         } else if (accountType == 'Employer') {
           return const EmployerProfilePage();
