@@ -14,6 +14,8 @@ class AppColors {
     static const Color cream = Color(0xFFECE3D1); 
     static const Color blue= Color(0xFF0f1633); 
 
+  static const Color green= Colors.green;
+    static const Color red= Colors.red;
   // Accent Colors
   static const Color greenCheck = Color(0xFF4CAF50);
   static const Color greenSuccess = Color(0xFF4CAF50);
